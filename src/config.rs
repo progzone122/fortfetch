@@ -11,7 +11,7 @@ pub const YELLOW: &str = "\x1b[1;33m";
 pub const RED: &str = "\x1b[0;31m";
 pub const NC: &str = "\x1b[0m";
 
-pub const GAP: usize = 12;
+pub const GAP: usize = 4;
 pub const MAX_KEY_LENGTH: usize = 22;
 
 /// Print ASCII logo with colors

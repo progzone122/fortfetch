@@ -1,4 +1,4 @@
-use crate::config::{BLACK, BLUE, CYAN, DARK_GRAY, GREEN, LIGHT_BLUE, LIGHT_GRAY, NC, PURPLE, RED, WHITE, YELLOW};
+use crate::config::{BLACK, BLUE, CYAN, DARK_GRAY, GAP, GREEN, LIGHT_BLUE, LIGHT_GRAY, NC, PURPLE, RED, WHITE, YELLOW};
 use fortfetch::{get_cpu_model, get_desktop_environment, get_disk_info, get_gpu_model, get_package_count, Uptime};
 use std::process::Command;
 use std::fs;
@@ -305,7 +305,6 @@ fn main() {
     println!();
 
     let max_lines = logo.len().max(info_lines.len());
-    let gap = 4;
 
     for i in 0..max_lines {
         if i < logo.len() {
@@ -313,10 +312,10 @@ fn main() {
             print!("{}", logo_line);
             
             let logo_line_width = get_string_length(logo_line);
-            let padding = max_logo_width - logo_line_width + gap;
+            let padding = max_logo_width - logo_line_width + GAP;
             print!("{}", " ".repeat(padding));
         } else {
-            print!("{}", " ".repeat(max_logo_width + gap));
+            print!("{}", " ".repeat(max_logo_width + GAP));
         }
         
         if i < info_lines.len() {
