@@ -1,7 +1,7 @@
 # fortfetch
 > Вдохновлено [fortunafetch](https://github.com/retroover/fortunafetch) и [fortufetch](https://github.com/fishcheese/fortufetch)
 
-![image](https://github.com/user-attachments/assets/064b866a-82a7-41f8-9a36-df66cbc53933)
+![image](https://github.com/user-attachments/assets/c92e280f-9e7e-4d53-b82f-61c1f3f53f69)
 
 После успеха легендарных [fortunafetch](https://github.com/retroover/fortunafetch) и [fortufetch](https://github.com/fishcheese/fortufetch) из лабораторий Фортуна Телеком®, где ночные тарифы и генераторы задавали тон жизни, появился fortfetch — ещё более провинциально-оптимизированная и персональная утилита.
 
