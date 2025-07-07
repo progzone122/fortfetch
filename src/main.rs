@@ -43,17 +43,17 @@ fn get_info() -> Vec<String> {
     let gpu = get_gpu_model().unwrap_or("?".to_string());
     let disk = get_disk_info().unwrap_or("?".to_string());
     let de = get_desktop_environment().unwrap_or("?".to_string());
-    let shell = get_shell();
-    let terminal = get_terminal();
-    let resolution = get_resolution();
-    let load_avg = get_load_average();
-    let users_count = get_users_count();
+    let shell = get_shell().unwrap_or("?".to_string());
+    let terminal = get_terminal().unwrap_or("?".to_string());
+    let resolution = get_resolution().unwrap_or("?".to_string());
+    let load_avg = get_load_average().unwrap_or("?".to_string());
+    let users_count = get_users_count().unwrap_or("?".to_string());
     let battery = get_battery_info();
-    let temperature = get_temperature();
-    let processes = get_processes_count();
-    let cpu_usage = get_cpu_usage();
+    let temperature = get_temperature().unwrap_or("?".to_string());
+    let processes = get_processes_count().unwrap_or("?".to_string());
+    let cpu_usage = get_cpu_usage().unwrap_or("?".to_string());
     let network = get_network_info();
-    let locale = get_locale_info();
+    let locale = get_locale_info().unwrap_or("?".to_string());
 
     info_lines.push(format!("{}{}{}@{}{}{}", 
         WHITE, username, LIGHT_GRAY, LIGHT_BLUE, hostname, NC));

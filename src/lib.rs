@@ -137,78 +137,74 @@ pub fn get_desktop_environment() -> Option<String> {
     None
 }
 
-pub fn get_shell() -> String {
+pub fn get_shell() -> Option<String> {
     std::env::var("SHELL")
-        .unwrap_or_else(|_| "?".to_string())
-        .split('/')
-        .last()
-        .unwrap_or("?")
-        .to_string()
+        .ok()
+        .as_deref()
+        .and_then(|shell| shell.split('/').last())
+        .map(|s| s.to_string())
 }
 
-pub fn get_terminal() -> String {
+pub fn get_terminal() -> Option<String> {
     std::env::var("TERM")
-        .unwrap_or_else(|_| "?".to_string())
+        .ok()
+        .as_deref()
+        .map(|s| s.to_string())
 }
 
-pub fn get_resolution() -> String {
+
+pub fn get_resolution() -> Option<String> {
     if let Ok(output) = Command::new("xrandr").output() {
         let stdout = String::from_utf8_lossy(&output.stdout);
-        for line in stdout.lines() {
-            if line.contains("*") && line.contains("x") {
-                if let Some(res) = line.split_whitespace().find(|s| s.contains("x")) {
-                    return res.to_string();
-                }
+        if let Some(line) = stdout.lines().find(|l| l.contains('*') && l.contains('x')) {
+            if let Some(res) = line.split_whitespace().find(|s| s.contains('x')) {
+                return Some(res.to_string());
             }
         }
     }
 
     if let Ok(output) = Command::new("xdpyinfo").output() {
         let stdout = String::from_utf8_lossy(&output.stdout);
-        for line in stdout.lines() {
-            if line.trim().starts_with("dimensions:") {
-                if let Some(dims) = line.split(':').nth(1) {
-                    if let Some(res) = dims.trim().split_whitespace().next() {
-                        return res.to_string();
-                    }
-                }
-            }
+        if let Some(line) = stdout.lines().find(|l| l.trim_start().starts_with("dimensions:")) {
+            return line
+                .split(':')
+                .nth(1)
+                .and_then(|dims| dims.trim().split_whitespace().next())
+                .map(|res| res.to_string());
         }
     }
 
     if env::var("WAYLAND_DISPLAY").is_ok() {
         if let Ok(output) = Command::new("wlr-randr").output() {
             let stdout = String::from_utf8_lossy(&output.stdout);
-            for line in stdout.lines() {
-                if line.contains("current") && line.contains("x") {
-                    if let Some(res) = line.split_whitespace().find(|s| s.contains("x")) {
-                        return res.to_string();
-                    }
+            if let Some(line) = stdout.lines().find(|l| l.contains("current") && l.contains('x')) {
+                if let Some(res) = line.split_whitespace().find(|s| s.contains('x')) {
+                    return Some(res.to_string());
                 }
             }
         }
     }
 
-    "?".to_string()
+    None
 }
 
-pub fn get_load_average() -> String {
+pub fn get_load_average() -> Option<String> {
     if let Ok(contents) = fs::read_to_string("/proc/loadavg") {
         let parts: Vec<&str> = contents.split_whitespace().collect();
         if parts.len() >= 3 {
-            return format!("{} {} {}", parts[0], parts[1], parts[2]);
+            return Some(format!("{} {} {}", parts[0], parts[1], parts[2]));
         }
     }
-    "?".to_string()
+    None
 }
 
-pub fn get_users_count() -> String {
+pub fn get_users_count() -> Option<String> {
     if let Ok(output) = Command::new("who").output() {
         let stdout = String::from_utf8_lossy(&output.stdout);
         let count = stdout.lines().count();
-        return count.to_string();
+        return Some(count.to_string());
     }
-    "?".to_string()
+    None
 }
 
 pub fn get_battery_info() -> String {
@@ -227,16 +223,16 @@ pub fn get_battery_info() -> String {
     "Подключен к сети".to_string()
 }
 
-pub fn get_temperature() -> String {
+pub fn get_temperature() -> Option<String> {
     if let Ok(temp_str) = fs::read_to_string("/sys/class/thermal/thermal_zone0/temp") {
         if let Ok(temp) = temp_str.trim().parse::<i32>() {
-            return format!("{}°C", temp / 1000);
+            return Some(format!("{}°C", temp / 1000));
         }
     }
-    "?".to_string()
+    None
 }
 
-pub fn get_processes_count() -> String {
+pub fn get_processes_count() -> Option<String> {
     if let Ok(entries) = fs::read_dir("/proc") {
         let count = entries
             .flatten()
@@ -244,12 +240,12 @@ pub fn get_processes_count() -> String {
                 entry.file_name().to_string_lossy().chars().all(|c| c.is_ascii_digit())
             })
             .count();
-        return count.to_string();
+        return Some(count.to_string());
     }
-    "?".to_string()
+    None
 }
 
-pub fn get_cpu_usage() -> String {
+pub fn get_cpu_usage() -> Option<String> {
     if let Ok(contents) = fs::read_to_string("/proc/stat") {
         if let Some(cpu_line) = contents.lines().next() {
             let parts: Vec<&str> = cpu_line.split_whitespace().collect();
@@ -260,12 +256,12 @@ pub fn get_cpu_usage() -> String {
                     .sum();
                 if total > 0 {
                     let usage = 100 - (idle * 100 / total);
-                    return format!("{}%", usage);
+                    return Some(format!("{}%", usage));
                 }
             }
         }
     }
-    "?".to_string()
+    Some("?".to_string())
 }
 
 pub fn get_network_info() -> String {
@@ -292,6 +288,6 @@ pub fn get_network_info() -> String {
     "Нет соединения".to_string()
 }
 
-pub fn get_locale_info() -> String {
-    env::var("LANG").unwrap_or_else(|_| "?".to_string())
+pub fn get_locale_info() -> Option<String> {
+    env::var("LANG").ok()
 }
