@@ -136,3 +136,158 @@ pub fn get_desktop_environment() -> Option<String> {
 
     None
 }
+
+pub fn get_shell() -> Option<String> {
+    std::env::var("SHELL")
+        .ok()
+        .as_deref()
+        .and_then(|shell| shell.split('/').last())
+        .map(|s| s.to_string())
+}
+
+pub fn get_terminal() -> Option<String> {
+    std::env::var("TERM")
+        .ok()
+        .as_deref()
+        .map(|s| s.to_string())
+}
+
+
+pub fn get_resolution() -> Option<String> {
+    if let Ok(output) = Command::new("xrandr").output() {
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        if let Some(line) = stdout.lines().find(|l| l.contains('*') && l.contains('x')) {
+            if let Some(res) = line.split_whitespace().find(|s| s.contains('x')) {
+                return Some(res.to_string());
+            }
+        }
+    }
+
+    if let Ok(output) = Command::new("xdpyinfo").output() {
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        if let Some(line) = stdout.lines().find(|l| l.trim_start().starts_with("dimensions:")) {
+            return line
+                .split(':')
+                .nth(1)
+                .and_then(|dims| dims.trim().split_whitespace().next())
+                .map(|res| res.to_string());
+        }
+    }
+
+    if env::var("WAYLAND_DISPLAY").is_ok() {
+        if let Ok(output) = Command::new("wlr-randr").output() {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            if let Some(line) = stdout.lines().find(|l| l.contains("current") && l.contains('x')) {
+                if let Some(res) = line.split_whitespace().find(|s| s.contains('x')) {
+                    return Some(res.to_string());
+                }
+            }
+        }
+    }
+
+    None
+}
+
+pub fn get_load_average() -> Option<String> {
+    if let Ok(contents) = fs::read_to_string("/proc/loadavg") {
+        let parts: Vec<&str> = contents.split_whitespace().collect();
+        if parts.len() >= 3 {
+            return Some(format!("{} {} {}", parts[0], parts[1], parts[2]));
+        }
+    }
+    None
+}
+
+pub fn get_users_count() -> Option<String> {
+    if let Ok(output) = Command::new("who").output() {
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let count = stdout.lines().count();
+        return Some(count.to_string());
+    }
+    None
+}
+
+pub fn get_battery_info() -> String {
+    if let Ok(entries) = fs::read_dir("/sys/class/power_supply") {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.file_name().unwrap_or_default().to_string_lossy().starts_with("BAT") {
+                if let Ok(capacity) = fs::read_to_string(path.join("capacity")) {
+                    if let Ok(status) = fs::read_to_string(path.join("status")) {
+                        return format!("{}% [{}]", capacity.trim(), status.trim());
+                    }
+                }
+            }
+        }
+    }
+    "Подключен к сети".to_string()
+}
+
+pub fn get_temperature() -> Option<String> {
+    if let Ok(temp_str) = fs::read_to_string("/sys/class/thermal/thermal_zone0/temp") {
+        if let Ok(temp) = temp_str.trim().parse::<i32>() {
+            return Some(format!("{}°C", temp / 1000));
+        }
+    }
+    None
+}
+
+pub fn get_processes_count() -> Option<String> {
+    if let Ok(entries) = fs::read_dir("/proc") {
+        let count = entries
+            .flatten()
+            .filter(|entry| {
+                entry.file_name().to_string_lossy().chars().all(|c| c.is_ascii_digit())
+            })
+            .count();
+        return Some(count.to_string());
+    }
+    None
+}
+
+pub fn get_cpu_usage() -> Option<String> {
+    if let Ok(contents) = fs::read_to_string("/proc/stat") {
+        if let Some(cpu_line) = contents.lines().next() {
+            let parts: Vec<&str> = cpu_line.split_whitespace().collect();
+            if parts.len() >= 8 {
+                let idle: u64 = parts[4].parse().unwrap_or(0);
+                let total: u64 = parts[1..8].iter()
+                    .map(|s| s.parse::<u64>().unwrap_or(0))
+                    .sum();
+                if total > 0 {
+                    let usage = 100 - (idle * 100 / total);
+                    return Some(format!("{}%", usage));
+                }
+            }
+        }
+    }
+    Some("?".to_string())
+}
+
+pub fn get_network_info() -> String {
+    if let Ok(output) = Command::new("ip").args(&["route", "show", "default"]).output() {
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        if let Some(line) = stdout.lines().next() {
+            if let Some(interface) = line.split_whitespace().nth(4) {
+                if let Ok(ip_output) = Command::new("ip").args(&["addr", "show", interface]).output() {
+                    let ip_stdout = String::from_utf8_lossy(&ip_output.stdout);
+                    for ip_line in ip_stdout.lines() {
+                        if ip_line.contains("inet ") && !ip_line.contains("127.0.0.1") {
+                            if let Some(ip) = ip_line.split_whitespace().nth(1) {
+                                if let Some(clean_ip) = ip.split('/').next() {
+                                    return format!("{} ({})", interface, clean_ip);
+                                }
+                            }
+                        }
+                    }
+                }
+                return format!("{}", interface);
+            }
+        }
+    }
+    "Нет соединения".to_string()
+}
+
+pub fn get_locale_info() -> Option<String> {
+    env::var("LANG").ok()
+}
